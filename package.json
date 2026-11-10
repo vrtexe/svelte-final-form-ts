@@ -1,6 +1,14 @@
 {
 	"name": "svelte-final-form-ts",
 	"version": "0.0.1",
+	"description": "Type-safe final-form bindings for Svelte 4 and Svelte 5: typed field paths, Form, Field and FormSpy, no wrapper markup.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/vrtexe/svelte-final-form-ts.git"
+	},
+	"homepage": "https://github.com/vrtexe/svelte-final-form-ts#readme",
+	"bugs": "https://github.com/vrtexe/svelte-final-form-ts/issues",
+	"author": "Vangel Trajkovski",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -68,7 +76,19 @@
 		"vitest-browser-svelte": "^2.1.1"
 	},
 	"keywords": [
-		"svelte"
+		"svelte",
+		"svelte4",
+		"svelte5",
+		"svelte-kit",
+		"sveltekit",
+		"runes",
+		"final-form",
+		"forms",
+		"form",
+		"form-validation",
+		"validation",
+		"typescript",
+		"svelte-library"
 	],
 	"license": "MIT"
 }
