@@ -1,6 +1,6 @@
 {
 	"name": "svelte-final-form-ts",
-	"version": "0.0.1",
+	"version": "0.0.9",
 	"description": "Type-safe final-form bindings for Svelte 4 and Svelte 5: typed field paths, Form, Field and FormSpy, no wrapper markup.",
 	"repository": {
 		"type": "git",
