@@ -1,0 +1,74 @@
+{
+	"types/root-entry.ts": [
+		{ "line": 39, "includes": "number" },
+		{ "line": 40, "includes": "address.town" }
+	],
+	"types/runes-entry.ts": [
+		{ "line": 39, "includes": "number" },
+		{ "line": 40, "includes": "address.town" }
+	],
+	"types/root-boundaries.ts": [
+		{ "line": 21, "includes": "\"\"" },
+		{ "line": 22, "includes": "tags.0" },
+		{ "line": 23, "includes": "born.getTime" },
+		{ "line": 24, "includes": "firstname" },
+		{ "line": 25, "includes": "number" },
+		{ "line": 33, "includes": "number" },
+		{ "line": 34, "includes": "string" },
+		{ "line": 35, "includes": "address.town" },
+		{ "line": 36, "includes": "tags.0" }
+	],
+	"types/deep-import.ts": [
+		{ "line": 3, "includes": "svelte-final-form-ts/dist/core/context.js" }
+	],
+	"types/legacy-FieldNames.svelte": [
+		{ "line": 20, "includes": "firstname" },
+		{ "line": 21, "includes": "address.town" },
+		{ "line": 22, "includes": "'\"\"'" }
+	],
+	"types/legacy-FieldValue.svelte": [
+		{ "line": 23, "includes": "parameter of type 'string'" },
+		{ "line": 26, "includes": "parameter of type 'number'" }
+	],
+	"types/legacy-ChangeHandler.svelte": [
+		{ "line": 11, "includes": "parameter of type 'number'" }
+	],
+	"types/legacy-InferInitialValues.svelte": [
+		{ "line": 11, "includes": "lastName" }
+	],
+	"types/legacy-InferOnSubmit.svelte": [
+		{ "line": 20, "includes": "address.code" }
+	],
+	"types/legacy-TypedSlots.svelte": [
+		{ "line": 18, "includes": "parameter of type 'string'" },
+		{ "line": 24, "includes": "parameter of type 'number'" },
+		{ "line": 25, "includes": "'boolean | undefined'" },
+		{ "line": 26, "includes": "lastName" },
+		{ "line": 29, "includes": "Type 'string' is not assignable to type 'number'" },
+		{ "line": 32, "includes": "age.toFixed" },
+		{ "line": 33, "includes": "\"address.\"" }
+	],
+	"types/runes/FieldNames.svelte": [
+		{ "line": 18, "includes": "\"firstname\"" },
+		{ "line": 19, "includes": "\"address.town\"" },
+		{ "line": 20, "includes": "\"\"" }
+	],
+	"types/runes/FieldValue.svelte": [
+		{ "line": 24, "includes": "parameter of type 'string'" },
+		{ "line": 33, "includes": "parameter of type 'number'" }
+	],
+	"types/runes/ChangeHandler.svelte": [{ "line": 13, "includes": "Argument of type 'string'" }],
+	"types/runes/InferInitialValues.svelte": [{ "line": 9, "includes": "\"lastName\"" }],
+	"types/runes/InferOnSubmit.svelte": [{ "line": 12, "includes": "\"address.code\"" }],
+	"types/runes/FormApiTyped.svelte": [{ "line": 7, "includes": "Argument of type 'number'" }],
+	"types/runes/Boundaries.svelte": [
+		{ "line": 18, "includes": "\"address.town\"" },
+		{ "line": 30, "includes": "\"address.city.zip\"" },
+		{ "line": 39, "includes": "Argument of type 'string" }
+	],
+	"types/runes/SnippetContent.svelte": [
+		{ "line": 19, "includes": "Argument of type 'string" },
+		{ "line": 21, "includes": "Argument of type 'string'" },
+		{ "line": 25, "includes": "Argument of type 'number" }
+	]
+}

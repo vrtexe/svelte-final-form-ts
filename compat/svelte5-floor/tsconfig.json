@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"skipLibCheck": false,
+		"noEmit": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true
+	},
+	"include": ["src/**/*.ts", "src/**/*.svelte"],
+	// The runes set's test files pull in the test tooling's own declarations, which need @types/node.
+	"exclude": ["src/**/*.test.ts"]
+}

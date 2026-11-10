@@ -54,6 +54,17 @@ You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
 
+## Testing
+
+```sh
+npm run check                    # type-check the project with svelte-check
+npx playwright install chromium  # once, for the browser test project
+npm run test:unit -- --run       # Vitest: the node and chromium projects
+npm run test:compat              # the packed library in Svelte 4 and Svelte 5 consumer projects
+```
+
+`npm run test:compat` runs `compat/run.mjs`. It packs the library and installs the tarball into the consumer projects under `compat/`, once per Svelte and final-form version pair in its matrix, which covers the peer floors and current versions of Svelte 4, Svelte 5, final-form 4 and final-form 5. It needs network access to an npm registry and is not part of `npm test`. It works in the git-ignored `compat/.work/` folder and deletes that folder when it starts, so do not run two copies at once in one checkout.
+
 ## Publishing
 
 Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
