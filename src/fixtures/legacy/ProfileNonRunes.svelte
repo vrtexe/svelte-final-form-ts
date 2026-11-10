@@ -12,6 +12,7 @@
 	export let formSubscription: ProfileProps['formSubscription'] = undefined;
 	export let fieldSubscription: ProfileProps['fieldSubscription'] = undefined;
 	export let spySubscription: ProfileProps['spySubscription'] = undefined;
+	export let spyOnChange: ProfileProps['spyOnChange'] = undefined;
 	export let ageValidator: ProfileProps['ageValidator'] = undefined;
 	export let fields: ProfileFieldName[] = ['firstName', 'age', 'address.city', 'address.zip'];
 	export let onForm: ProfileProps['onForm'] = undefined;
@@ -121,7 +122,12 @@
 			</Field>
 		{/if}
 		{#if spySubscription}
-			<FormSpy subscription={spySubscription} let:state={spyState} let:form={spyForm}>
+			<FormSpy
+				subscription={spySubscription}
+				onChange={spyOnChange}
+				let:state={spyState}
+				let:form={spyForm}
+			>
 				{rendered('spy', spyState)}
 				<output data-testid="spy-state">{JSON.stringify(spyState)}</output>
 				<button type="button" data-testid="spy-set-age" on:click={() => spyForm.change('age', 42)}

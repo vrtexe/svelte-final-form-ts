@@ -12,6 +12,8 @@
 	export let form: TypedFormApi<V> | undefined = undefined;
 	/** Read once. */
 	export let subscription: FormSubscription = allFormSubscription;
+	/** Called with the subscribed state before the spy renders with it. */
+	export let onChange: ((state: FormState<V, Partial<V>>) => void) | undefined = undefined;
 
 	const api = form ?? getForm<V>();
 
@@ -20,10 +22,13 @@
 	let state = api.getState();
 	const unsubscribe = subscribeForm(
 		api,
-		(next: FormState<V, Partial<V>>) => (state = next),
+		(next: FormState<V, Partial<V>>) => {
+			onChange?.(next);
+			state = next;
+		},
 		subscription
 	);
 	onDestroy(unsubscribe);
 </script>
 
-<slot {state} form={api} />
+<slot {state} formState={state} form={api} />

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import ContextInsideForm from '../fixtures/ContextInsideForm.svelte';
+import ContextProbe from '../fixtures/ContextProbe.svelte';
 import GetFormOutside from '../fixtures/GetFormOutside.svelte';
 import ProvideForms from '../fixtures/ProvideForms.svelte';
 import { getForm, type AnyFormValues, type TypedFormApi } from '../lib/index.js';
@@ -69,5 +71,26 @@ describe('getForm', () => {
 
 		expect((error as Error).message).toContain('lifecycle_outside_component');
 		expect((error as Error).message).not.toContain(OUTSIDE_FORM_MESSAGE);
+	});
+});
+
+describe('FORM', () => {
+	it('is the key getForm reads: getContext(FORM) is the form getForm returns', () => {
+		const found: { context?: unknown; form?: unknown }[] = [];
+
+		render(ContextInsideForm, { onFound: (value) => found.push(value) });
+
+		expect(found).toHaveLength(1);
+		expect(found[0].context).toBeDefined();
+		expect(found[0].context).toBe(found[0].form);
+	});
+
+	it('is undefined outside a Form, without throwing', () => {
+		const found: { context?: unknown }[] = [];
+
+		render(ContextProbe, { onFound: (value) => found.push(value) });
+
+		expect(found).toHaveLength(1);
+		expect(found[0].context).toBeUndefined();
 	});
 });

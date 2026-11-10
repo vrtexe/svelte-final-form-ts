@@ -48,3 +48,28 @@ export function createHandleSubmit<V extends AnyFormValues>(
 		return form.submit();
 	};
 }
+
+/** Compares two objects one level deep: equal keys, `===` per value. Nested objects compare by reference. */
+export function shallowEqual(a: unknown, b: unknown): boolean {
+	if (a === b) return true;
+	if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+	const left = a as Record<string, unknown>;
+	const right = b as Record<string, unknown>;
+	const keys = Object.keys(left);
+	return keys.length === Object.keys(right).length && keys.every((key) => left[key] === right[key]);
+}
+
+/** Returns a watcher that calls `callback` when the value it receives differs, by `isEqual`, from the one before. */
+export function whenValueChanges<T>(
+	init: T,
+	callback: () => void,
+	isEqual: (a: T, b: T) => boolean = (a, b) => a === b
+): (value: T) => void {
+	let previous = init;
+	return (value) => {
+		if (!isEqual(previous, value)) {
+			callback();
+			previous = value;
+		}
+	};
+}

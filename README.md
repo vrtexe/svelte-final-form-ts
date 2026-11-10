@@ -1,5 +1,7 @@
 # Svelte library
 
+[![npm](https://img.shields.io/npm/v/svelte-final-form-ts)](https://www.npmjs.com/package/svelte-final-form-ts)
+
 Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
 
 Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).

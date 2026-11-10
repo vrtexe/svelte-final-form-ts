@@ -4,6 +4,9 @@ import type { AnyFormValues, TypedFormApi } from './types.js';
 // One key for both component sets, so getForm finds a Form from either.
 const FORM_CONTEXT_KEY = Symbol('svelte-final-form-ts.form');
 
+/** The context key every `Form` provides and `getForm` reads, for consumers that read it directly. */
+export const FORM: symbol = FORM_CONTEXT_KEY;
+
 const OUTSIDE_FORM_MESSAGE =
 	'getForm() must be called inside a <Form> component, during component initialisation';
 

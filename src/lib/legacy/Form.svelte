@@ -9,7 +9,9 @@
 		allFormSubscription,
 		createHandleSubmit,
 		createTypedForm,
+		shallowEqual,
 		subscribeForm,
+		whenValueChanges,
 		type FormConfig
 	} from '../core/form.js';
 	import type { AnyFormValues } from '../core/types.js';
@@ -26,7 +28,7 @@
 	export let debug: FormConfig<V>['debug'] = undefined;
 	export let subscription: FormSubscription = allFormSubscription;
 
-	// initialValues, mutators, debug and subscription are read once, here.
+	// mutators, debug and subscription are read once, here.
 	const form = createTypedForm<V>({
 		onSubmit,
 		initialValues,
@@ -55,6 +57,14 @@
 	$: form.setConfig('validateOnBlur', validateOnBlur);
 	$: form.setConfig('destroyOnUnregister', destroyOnUnregister);
 	$: form.setConfig('keepDirtyOnReinitialize', keepDirtyOnReinitialize);
+
+	// A new object with the same values must not reinitialise a dirty form.
+	const whenInitialValuesChange = whenValueChanges(
+		initialValues,
+		() => form.setConfig('initialValues', initialValues),
+		shallowEqual
+	);
+	$: whenInitialValuesChange(initialValues);
 </script>
 
 <slot {form} {state} {handleSubmit} />
