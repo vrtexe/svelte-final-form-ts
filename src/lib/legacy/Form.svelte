@@ -9,7 +9,8 @@
 		allFormSubscription,
 		createHandleSubmit,
 		createTypedForm,
-		shallowEqual,
+		normalizeOnSubmit,
+		setValidate,
 		subscribeForm,
 		whenValueChanges,
 		type FormConfig
@@ -52,19 +53,29 @@
 	);
 	onDestroy(unsubscribe);
 
-	$: form.setConfig('onSubmit', onSubmit);
-	$: form.setConfig('validate', validate);
-	$: form.setConfig('validateOnBlur', validateOnBlur);
-	$: form.setConfig('destroyOnUnregister', destroyOnUnregister);
-	$: form.setConfig('keepDirtyOnReinitialize', keepDirtyOnReinitialize);
-
-	// A new object with the same values must not reinitialise a dirty form.
-	const whenInitialValuesChange = whenValueChanges(
-		initialValues,
-		() => form.setConfig('initialValues', initialValues),
-		shallowEqual
+	// Only a changed value reaches final-form: setConfig('validate') revalidates the whole form.
+	const whenOnSubmitChanges = whenValueChanges(onSubmit, () =>
+		form.setConfig('onSubmit', normalizeOnSubmit(onSubmit))
 	);
-	$: whenInitialValuesChange(initialValues);
+	$: whenOnSubmitChanges(onSubmit);
+
+	const whenValidateChanges = whenValueChanges(validate, () => setValidate(form, validate));
+	$: whenValidateChanges(validate);
+
+	const whenValidateOnBlurChanges = whenValueChanges(validateOnBlur, () =>
+		form.setConfig('validateOnBlur', validateOnBlur)
+	);
+	$: whenValidateOnBlurChanges(validateOnBlur);
+
+	const whenDestroyOnUnregisterChanges = whenValueChanges(destroyOnUnregister, () =>
+		form.setConfig('destroyOnUnregister', destroyOnUnregister)
+	);
+	$: whenDestroyOnUnregisterChanges(destroyOnUnregister);
+
+	const whenKeepDirtyOnReinitializeChanges = whenValueChanges(keepDirtyOnReinitialize, () =>
+		form.setConfig('keepDirtyOnReinitialize', keepDirtyOnReinitialize)
+	);
+	$: whenKeepDirtyOnReinitializeChanges(keepDirtyOnReinitialize);
 </script>
 
 <slot {form} {state} {handleSubmit} />

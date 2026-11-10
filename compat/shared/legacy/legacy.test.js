@@ -12,7 +12,16 @@ import NestedForms from './NestedForms.svelte';
 import OutsideForm from './OutsideForm.svelte';
 import Profile from './Profile.svelte';
 import RenameField from './RenameField.svelte';
-import { config, fieldName, fields, forms, live, renderCount, reset } from './setup.js';
+import {
+	config,
+	fieldName,
+	fields,
+	forms,
+	live,
+	renderCount,
+	reset,
+	validateStore
+} from './setup.js';
 
 const OUTSIDE_FORM_MESSAGE =
 	'getForm() must be called inside a <Form> component, during component initialisation';
@@ -27,6 +36,7 @@ const submit = () => fireEvent.submit(screen.getByTestId('form'));
 /** Renders the profile form with the given config and returns the form API its content holds. */
 function mountProfile(overrides = {}) {
 	Object.assign(config, overrides);
+	if ('validate' in overrides) validateStore.set(overrides.validate);
 	const view = render(Profile);
 	return { form: forms[0], view };
 }
@@ -100,6 +110,17 @@ describe('Form', () => {
 		expect(onSubmit).not.toHaveBeenCalled();
 		expect(json('form-state').valid).toBe(false);
 		expect(json('meta:firstName')).toMatchObject({ error: 'Required', touched: true });
+	});
+
+	it('a new validate prop applies to the mounted form', async () => {
+		const { form } = mountProfile({ initialValues: { firstName: 'Ana' } });
+		expect(form.getState().valid).toBe(true);
+
+		validateStore.set((values) => (values.firstName ? {} : { firstName: 'Required' }));
+		await tick();
+		form.change('firstName', '');
+
+		expect(form.getState().valid).toBe(false);
 	});
 
 	it('submission errors returned by onSubmit reach the form state', async () => {

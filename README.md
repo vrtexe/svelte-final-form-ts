@@ -55,9 +55,9 @@ or newer is required for the component generics.
 </script>
 
 <Form {initialValues} onSubmit={save}>
-	{#snippet children({ state, handleSubmit })}
+	{#snippet children({ form, state, handleSubmit })}
 		<form onsubmit={handleSubmit}>
-			<Field name="firstName">
+			<Field name="firstName" {form}>
 				{#snippet children({ input, meta })}
 					<input
 						value={input.value ?? ''}
@@ -90,11 +90,22 @@ or newer is required for the component generics.
 ```svelte
 <script lang="ts">
 	import { Field, Form } from 'svelte-final-form-ts';
+
+	interface Profile {
+		firstName: string;
+	}
+
+	const initialValues: Partial<Profile> = { firstName: '' };
+	const validate = (values: Partial<Profile>) =>
+		values.firstName ? {} : { firstName: 'Required' };
+	async function save(values: Partial<Profile>) {
+		await fetch('/api/profile', { method: 'POST', body: JSON.stringify(values) });
+	}
 </script>
 
-<Form {initialValues} {validate} onSubmit={save} let:state let:handleSubmit>
+<Form {initialValues} {validate} onSubmit={save} let:form let:state let:handleSubmit>
 	<form on:submit={handleSubmit}>
-		<Field name="firstName" let:input let:meta>
+		<Field name="firstName" {form} let:input let:meta>
 			<input
 				value={input.value ?? ''}
 				on:input={(event) => input.onChange(event.currentTarget.value)}
@@ -149,7 +160,7 @@ field.
 | Prop                      | Type                                  | Default          | Notes                                       |
 | ------------------------- | ------------------------------------- | ---------------- | ------------------------------------------- |
 | `onSubmit`                | `(values, form, callback) => unknown` | —                | Required; final-form throws without it.     |
-| `initialValues`           | `Partial<V>`                          | `undefined`      | Read once at creation in runes mode.        |
+| `initialValues`           | `Partial<V>`                          | `undefined`      | Read once at creation in both entries.      |
 | `validate`                | `(values) => errors`                  | `undefined`      | Whole-form validator.                       |
 | `validateOnBlur`          | `boolean`                             | final-form value |                                             |
 | `destroyOnUnregister`     | `boolean`                             | final-form value | Drops values of unmounted fields.           |
@@ -161,24 +172,24 @@ field.
 Renders `children` / the default slot with `{ form, state, handleSubmit }`. `handleSubmit` calls
 `preventDefault()` on the event and then `form.submit()`.
 
-In runes mode `initialValues` is read once; call `form.initialize()` to apply new values. The legacy
-`Form` watches `initialValues` and reinitialises when the object changes shallowly.
+Both entries read `initialValues` once at creation. Call `form.initialize()` or `form.restart()` to
+apply new values.
 
 ### `<Field>`
 
-| Prop             | Type                | Default          | Notes                                      |
-| ---------------- | ------------------- | ---------------- | ------------------------------------------ |
-| `name`           | `FieldPath<V>`      | —                | Dot path, e.g. `"address.city"`.           |
-| `form`           | `TypedFormApi<V>`   | enclosing `Form` | Anchors the types; read once.              |
-| `subscription`   | `FieldSubscription` | every key        |                                            |
-| `validate`       | `(value) => error`  | `undefined`      | Read on every validation.                  |
-| `validateFields` | `string[]`          | `undefined`      | Fields that revalidate when this one does. |
-| `initialValue`   | `T`                 | `undefined`      |                                            |
-| `defaultValue`   | `T`                 | `undefined`      |                                            |
-| `isEqual`        | `(a, b) => boolean` | final-form value |                                            |
-| `afterSubmit`    | `() => unknown`     | `undefined`      |                                            |
-| `beforeSubmit`   | `() => unknown`     | `undefined`      |                                            |
-| `data`           | `object`            | `undefined`      |                                            |
+| Prop             | Type                | Default          | Notes                                                                             |
+| ---------------- | ------------------- | ---------------- | --------------------------------------------------------------------------------- |
+| `name`           | `FieldPath<V>`      | —                | Dot path, e.g. `"address.city"`.                                                  |
+| `form`           | `TypedFormApi<V>`   | enclosing `Form` | Anchors the types; read once. Without it, `name` is `string` and the value `any`. |
+| `subscription`   | `FieldSubscription` | every key        |                                                                                   |
+| `validate`       | `(value) => error`  | `undefined`      | Read on every validation.                                                         |
+| `validateFields` | `string[]`          | `undefined`      | Fields that revalidate when this one does.                                        |
+| `initialValue`   | `T`                 | `undefined`      |                                                                                   |
+| `defaultValue`   | `T`                 | `undefined`      |                                                                                   |
+| `isEqual`        | `(a, b) => boolean` | final-form value |                                                                                   |
+| `afterSubmit`    | `() => unknown`     | `undefined`      |                                                                                   |
+| `beforeSubmit`   | `() => unknown`     | `undefined`      |                                                                                   |
+| `data`           | `object`            | `undefined`      |                                                                                   |
 
 Renders `children` / the default slot with `{ input, meta }`:
 
@@ -192,14 +203,13 @@ object with the same keys is ignored.
 
 ### `<FormSpy>`
 
-| Prop           | Type               | Default          | Notes                              |
-| -------------- | ------------------ | ---------------- | ---------------------------------- |
-| `form`         | `TypedFormApi<V>`  | enclosing `Form` | Read once.                         |
-| `subscription` | `FormSubscription` | every key        | Read once.                         |
-| `onChange`     | `(state) => void`  | `undefined`      | Called before the content renders. |
+| Prop           | Type               | Default          | Notes      |
+| -------------- | ------------------ | ---------------- | ---------- |
+| `form`         | `TypedFormApi<V>`  | enclosing `Form` | Read once. |
+| `subscription` | `FormSubscription` | every key        | Read once. |
 
-Renders `{ state, form }` (the legacy component also exposes the alias `formState`). Use it when only
-part of the tree needs form state, instead of re-rendering everything inside `<Form>`.
+Renders `{ state, form }`. Use it when only part of the tree needs form state, instead of
+re-rendering everything inside `<Form>`.
 
 ### `getForm()`
 
@@ -271,12 +281,36 @@ npm install
 npm run dev -- --open   # showcase app
 npm run check           # svelte-check
 npm run test:unit -- --run
+npm test                # check, unit tests and e2e
+npm run verify          # lint, check, unit, e2e, build and compat
 ```
 
 `npm run test:compat` packs the library and installs the tarball into the consumer projects under
 `compat/`, once per Svelte and final-form version pair in its matrix — the peer floors and current
 versions of Svelte 4, Svelte 5, final-form 4 and final-form 5. It needs registry access and works in
-the git-ignored `compat/.work/` folder.
+the git-ignored `compat/.work/` folder. Do not run two copies at once in one checkout: each deletes
+`compat/.work` when it starts.
+
+## Publishing
+
+Releases run through `.github/workflows/npm-publish.yml` on a GitHub release. The workflow verifies
+the package, bumps the version and submits it with `npm stage publish`; it authenticates with npm
+trusted publishing (OIDC), so no npm token is stored.
+
+Configure the package's trusted publisher on npmjs.com:
+
+| Field                | Value                |
+| -------------------- | -------------------- |
+| Provider             | GitHub Actions       |
+| Organization or user | the repository owner |
+| Repository           | the repository name  |
+| Workflow filename    | `npm-publish.yml`    |
+| Allowed actions      | `npm stage publish`  |
+
+The workflow installs npm 11.15.0 or newer, which staged publishing requires. A maintainer then
+reviews the staged version in the package's Staged Packages tab on npmjs.com or with
+`npm stage approve <stage-id>`; approval requires 2FA. Direct `npm publish` remains available for
+manual releases unless the package is set to stage-only.
 
 ## License
 

@@ -9,6 +9,9 @@ export const config = {};
 /** The fields Profile.svelte mounts. */
 export const fields = writable([]);
 
+/** The form-level validator; a test replaces it to check a validate prop given after mount. */
+export const validateStore = writable(undefined);
+
 /** The name of the field in RenameField.svelte. */
 export const fieldName = writable('firstName');
 
@@ -57,6 +60,7 @@ export function reset() {
 	config.onSubmit = () => undefined;
 	fields.set(['firstName', 'age', 'address.city']);
 	fieldName.set('firstName');
+	validateStore.set(undefined);
 	forms.length = 0;
 	live.subscriptions = 0;
 	for (const key of Object.keys(renders)) delete renders[key];

@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { Field, Form, FormSpy } from 'svelte-final-form-ts/runes';
-	import { config, fields, rendered, toAge } from './setup.js';
+	import { config, fields, rendered, toAge, validateStore } from './setup.js';
 	import Probe from './Probe.svelte';
 
 	const {
@@ -18,7 +18,7 @@
 	} = config;
 </script>
 
-<Form {onSubmit} {initialValues} {validate} subscription={formSubscription}>
+<Form {onSubmit} {initialValues} validate={$validateStore ?? validate} subscription={formSubscription}>
 	{#snippet children({ form, state, handleSubmit })}
 		<Probe />
 		<form data-testid="form" onsubmit={handleSubmit}>

@@ -4,7 +4,6 @@
 import type {
 	FieldSubscription,
 	FieldValidator,
-	FormState,
 	FormSubscription,
 	SubmissionErrors,
 	ValidationErrors
@@ -44,8 +43,6 @@ export interface ProfileProps {
 	fieldSubscription?: FieldSubscription;
 	/** Mounts a `FormSpy` with this subscription when given. */
 	spySubscription?: FormSubscription;
-	/** Passed to the `FormSpy` as its onChange. */
-	spyOnChange?: (state: FormState<Profile, Partial<Profile>>) => void;
 	ageValidator?: FieldValidator<number>;
 	/** The fields to mount, all four by default. */
 	fields?: ProfileFieldName[];
@@ -655,63 +652,6 @@ export function componentSuite(set: FixtureSet): void {
 			expect(openSubscriptions()).toBe(1);
 			expect(counter.count('spy')).toBe(spyRendersAtUnmount);
 			expect(readJson('form-state')).toMatchObject({ values: { firstName: 'Elena' } });
-		});
-
-		it('the form spy calls onChange on mount with the subscribed state', async () => {
-			const onChange = vi.fn();
-			await mountProfile(set, {
-				initialValues: { firstName: 'Ana' },
-				spySubscription: { values: true },
-				spyOnChange: onChange
-			});
-
-			expect(onChange).toHaveBeenCalledTimes(1);
-			expect(onChange.mock.calls[0][0]).toEqual({ values: { firstName: 'Ana' } });
-		});
-
-		it('the form spy calls onChange before it renders the new state', async () => {
-			const seen: (string | null)[] = [];
-			await mountProfile(set, {
-				initialValues: { firstName: 'Ana' },
-				spySubscription: { values: true },
-				spyOnChange: () =>
-					seen.push(document.querySelector('[data-testid="spy-state"]')?.textContent ?? null)
-			});
-			await fill('firstName', 'Petar');
-
-			expect(seen).toEqual([null, JSON.stringify({ values: { firstName: 'Ana' } })]);
-		});
-
-		it('the form spy calls onChange only for subscribed changes', async () => {
-			const onChange = vi.fn();
-			await mountProfile(set, { spySubscription: { submitFailed: true }, spyOnChange: onChange });
-			onChange.mockClear();
-
-			await fill('firstName', 'Petar');
-
-			expect(onChange).not.toHaveBeenCalled();
-		});
-
-		it('a new onChange handler applies without subscribing again', async () => {
-			const first = vi.fn();
-			const second = vi.fn();
-			let openSubscriptions: () => number = () => 0;
-			const { screen } = await mountProfile(set, {
-				initialValues: { firstName: 'Ana' },
-				spySubscription: { values: true },
-				spyOnChange: first,
-				onForm: (received) => (openSubscriptions = trackSubscriptions(received))
-			});
-			const openBefore = openSubscriptions();
-
-			await screen.rerender({ spyOnChange: second });
-			first.mockClear();
-			await fill('firstName', 'Petar');
-
-			expect(openSubscriptions()).toBe(openBefore);
-			expect(first).not.toHaveBeenCalled();
-			expect(second).toHaveBeenCalledTimes(1);
-			expect(second.mock.calls[0][0]).toEqual({ values: { firstName: 'Petar' } });
 		});
 	});
 

@@ -13,7 +13,15 @@ import NestedForms from './NestedForms.svelte';
 import OutsideForm from './OutsideForm.svelte';
 import Profile from './Profile.svelte';
 import RenameField from './RenameField.svelte';
-import { config, fieldName, fields, forms, renderCount, reset } from './setup.js';
+import {
+	config,
+	fieldName,
+	fields,
+	forms,
+	renderCount,
+	reset,
+	validateStore
+} from './setup.js';
 
 const OUTSIDE_FORM = 'getForm() must be called inside a <Form> component';
 
@@ -30,6 +38,11 @@ const settle = async () => {
 
 beforeEach(reset);
 afterEach(cleanup);
+
+function mountProfile(): ReturnType<typeof render> {
+	validateStore.set(config.validate);
+	return render(Profile);
+}
 
 // Guards the harness itself: COMPAT_RUNES=1 (the function form, or step 6's boolean) must really
 // compile a consumer file that uses no runes in runes mode; unset leaves Svelte's automatic mode.
@@ -52,7 +65,7 @@ describe('Form', () => {
 	test('Submitting calls onSubmit with the current values', async () => {
 		const onSubmit = vi.fn();
 		Object.assign(config, { onSubmit, initialValues: { firstName: 'Ana', age: 30 } });
-		render(Profile);
+		mountProfile();
 		await type('input-firstName', 'Marija');
 		await submit();
 		expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -61,7 +74,7 @@ describe('Form', () => {
 
 	test('Initial values prefill the form state', () => {
 		config.initialValues = { firstName: 'Ana', address: { city: 'Skopje', zip: '1000' } };
-		render(Profile);
+		mountProfile();
 		const state = json('form-state');
 		expect(state.values).toEqual({ firstName: 'Ana', address: { city: 'Skopje', zip: '1000' } });
 		expect(state.pristine).toBe(true);
@@ -74,16 +87,29 @@ describe('Form', () => {
 			validate: (values: { firstName?: string }) =>
 				values.firstName ? {} : { firstName: 'Required' }
 		});
-		render(Profile);
+		mountProfile();
 		await submit();
 		expect(onSubmit).not.toHaveBeenCalled();
 		expect(json('form-state').valid).toBe(false);
 		expect(json('field-firstName').meta).toMatchObject({ error: 'Required', touched: true });
 	});
 
+	test('A new validate prop applies to the mounted form', async () => {
+		config.initialValues = { firstName: 'Ana' };
+		mountProfile();
+		const form = forms[0];
+		expect(form.getState().valid).toBe(true);
+
+		validateStore.set((values) => (values.firstName ? {} : { firstName: 'Required' }));
+		await tick();
+		form.change('firstName', '');
+
+		expect(form.getState().valid).toBe(false);
+	});
+
 	test('Submission errors returned by onSubmit reach the form state', async () => {
 		config.onSubmit = () => ({ firstName: 'Taken' });
-		render(Profile);
+		mountProfile();
 		await submit();
 		expect(json('form-state')).toMatchObject({ submitFailed: true, hasSubmitErrors: true });
 		expect(json('field-firstName').meta.submitError).toBe('Taken');
@@ -92,7 +118,7 @@ describe('Form', () => {
 	test('The submitting flag is true while an asynchronous onSubmit is pending', async () => {
 		let finish: () => void = () => undefined;
 		config.onSubmit = () => new Promise<void>((resolve) => (finish = resolve));
-		render(Profile);
+		mountProfile();
 		await submit();
 		expect(json('form-state').submitting).toBe(true);
 		finish();
@@ -102,14 +128,14 @@ describe('Form', () => {
 
 	test('The form subscription limits the state exposed to the content', () => {
 		config.formSubscription = { submitting: true };
-		render(Profile);
+		mountProfile();
 		const state = json('form-state');
 		expect(state.submitting).toBeDefined();
 		expect(state.values).toBeUndefined();
 	});
 
 	test('The content receives the form API', async () => {
-		render(Profile);
+		mountProfile();
 		await fireEvent.click(screen.getByText('Change through the Form content'));
 		expect(json('form-state').values.firstName).toBe('Elena');
 	});
@@ -119,7 +145,7 @@ describe('Form', () => {
 	});
 
 	test('Unmounting the form removes its subscriptions', () => {
-		const { unmount } = render(Profile);
+		const { unmount } = mountProfile();
 		const retained = forms[0];
 		const before = ['firstName', 'age', 'spy'].map(renderCount);
 		unmount();
@@ -133,7 +159,7 @@ describe('Form', () => {
 describe('Field', () => {
 	test('A top-level field receives its input props', () => {
 		config.initialValues = { firstName: 'Ana' };
-		render(Profile);
+		mountProfile();
 		expect(json('field-firstName')).toMatchObject({
 			name: 'firstName',
 			value: 'Ana',
@@ -143,21 +169,21 @@ describe('Field', () => {
 
 	test('A nested field path reads and writes the nested value', async () => {
 		config.initialValues = { address: { city: 'Skopje', zip: '1000' } };
-		render(Profile);
+		mountProfile();
 		await type('input-address.city', 'Bitola');
 		expect(json('field-address.city').value).toBe('Bitola');
 		expect(json('form-state').values.address).toEqual({ city: 'Bitola', zip: '1000' });
 	});
 
 	test('Changing a field updates the form values', async () => {
-		render(Profile);
+		mountProfile();
 		await type('input-firstName', 'Petar');
 		expect(json('form-state').values.firstName).toBe('Petar');
 		expect(json('field-firstName').meta.dirty).toBe(true);
 	});
 
 	test('Blurring a field marks it touched', async () => {
-		render(Profile);
+		mountProfile();
 		expect(json('field-firstName').meta.touched).toBe(false);
 		await fireEvent.focus(screen.getByTestId('input-firstName'));
 		await fireEvent.blur(screen.getByTestId('input-firstName'));
@@ -167,7 +193,7 @@ describe('Field', () => {
 	test('A field-level validator error appears in the field meta', async () => {
 		config.ageValidator = (age) =>
 			age !== undefined && age < 18 ? 'Must be 18 or older' : undefined;
-		render(Profile);
+		mountProfile();
 		await type('input-age', '17');
 		expect(json('field-age').meta.error).toBe('Must be 18 or older');
 		expect(json('form-state').valid).toBe(false);
@@ -179,14 +205,14 @@ describe('Field', () => {
 	])('The field validator boundary on age: %i', async (age, error) => {
 		config.ageValidator = (value) =>
 			value !== undefined && value < 18 ? 'Must be 18 or older' : undefined;
-		render(Profile);
+		mountProfile();
 		await type('input-age', String(age));
 		expect(json('field-age').meta.error).toBe(error);
 	});
 
 	test("A form-level error for a nested path appears in that field's meta", () => {
 		config.validate = (values) => (values.address?.city ? {} : { address: { city: 'Required' } });
-		render(Profile);
+		mountProfile();
 		expect(json('field-address.city').meta.error).toBe('Required');
 	});
 
@@ -195,7 +221,7 @@ describe('Field', () => {
 			initialValues: { firstName: 'Ana' },
 			fieldSubscription: { value: true }
 		});
-		render(Profile);
+		mountProfile();
 		const field = json('field-firstName');
 		expect(field.value).toBe('Ana');
 		expect(field.meta.touched).toBeUndefined();
@@ -204,7 +230,7 @@ describe('Field', () => {
 
 	test("Changing one field does not re-render another field's content", async () => {
 		config.fieldSubscription = { value: true };
-		render(Profile);
+		mountProfile();
 		expect(text('renders-age')).toBe('1');
 		await type('input-firstName', 'Petar');
 		expect(text('renders-age')).toBe('1');
@@ -212,7 +238,7 @@ describe('Field', () => {
 
 	test('Unmounting a field unregisters it from the form', async () => {
 		fields.set(['firstName', 'age']);
-		render(Profile);
+		mountProfile();
 		fields.set(['firstName']);
 		await tick();
 		expect(forms[0].getRegisteredFields()).toEqual(['firstName']);
@@ -230,14 +256,14 @@ describe('Field', () => {
 describe('FormSpy', () => {
 	test('The form spy shows the subscribed state', async () => {
 		config.spySubscription = { values: true };
-		render(Profile);
+		mountProfile();
 		await type('input-firstName', 'Petar');
 		expect(json('spy-state').values.firstName).toBe('Petar');
 	});
 
 	test('The form spy re-renders when subscribed state changes', async () => {
 		config.spySubscription = { dirty: true };
-		render(Profile);
+		mountProfile();
 		expect(text('renders-spy')).toBe('1');
 		await type('input-firstName', 'Petar');
 		expect(text('renders-spy')).toBe('2');
@@ -246,7 +272,7 @@ describe('FormSpy', () => {
 
 	test('The form spy does not re-render when only unsubscribed state changes', async () => {
 		config.spySubscription = { submitting: true };
-		render(Profile);
+		mountProfile();
 		expect(text('renders-spy')).toBe('1');
 		await type('input-firstName', 'Petar');
 		expect(text('renders-spy')).toBe('1');
@@ -254,7 +280,7 @@ describe('FormSpy', () => {
 
 	test('The form spy does not re-render when subscribed state keeps its value', async () => {
 		config.spySubscription = { dirty: true };
-		render(Profile);
+		mountProfile();
 		await type('input-firstName', 'Petar');
 		expect(text('renders-spy')).toBe('2');
 		await type('input-age', '31');

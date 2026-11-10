@@ -43,6 +43,9 @@ export const withoutOnSubmit: any = { initialValues: { firstName: 'Ana' } };
 /** The fields Profile.svelte mounts. */
 export const fields = writable<ProfileField[]>([]);
 
+/** The form-level validator; a test replaces it to check a validate prop given after mount. */
+export const validateStore = writable<Config['validate']>(undefined);
+
 /** The name of the field in RenameField.svelte. */
 export const fieldName = writable<'firstName' | 'address.city'>('firstName');
 
@@ -67,6 +70,7 @@ export function reset(): void {
 	config.onSubmit = () => undefined;
 	fields.set(['firstName', 'age', 'address.city']);
 	fieldName.set('firstName');
+	validateStore.set(undefined);
 	forms.length = 0;
 	for (const key of Object.keys(renders)) delete renders[key];
 }

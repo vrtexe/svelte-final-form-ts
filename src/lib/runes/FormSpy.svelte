@@ -15,12 +15,10 @@
 		form?: TypedFormApi<V>;
 		/** Read once at creation. Defaults to every form state key. */
 		subscription?: FormSubscription;
-		/** Called with the subscribed state before the content re-renders with it. */
-		onChange?: (state: FormState<V, Partial<V>>) => void;
 		children: Snippet<[FormSpyRenderProps<V>]>;
 	}
 
-	let { form: formProp, subscription, onChange, children }: Props = $props();
+	let { form: formProp, subscription, children }: Props = $props();
 
 	const form = untrack(() => formProp) ?? getForm<V>();
 
@@ -31,7 +29,6 @@
 		subscribeForm(
 			form,
 			(next) => {
-				onChange?.(next);
 				formState = next;
 			},
 			untrack(() => subscription)

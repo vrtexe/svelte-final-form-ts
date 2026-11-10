@@ -5,7 +5,6 @@ import { flushSync } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import ExplicitForm from '../fixtures/legacy/ExplicitForm.svelte';
-import LegacyProfile from '../fixtures/legacy/Profile.svelte';
 import Wiring from '../fixtures/legacy/Wiring.svelte';
 import type { TypedFormApi } from '../lib/index.js';
 import type { Profile } from './suite.js';
@@ -149,24 +148,33 @@ describe('legacy Form passes its props to final-form', () => {
 		expect(form.getState().values.age).toBe(40);
 	});
 
-	it('applies an initialValues given after mount', async () => {
-		const { form, screen } = await mount({ formProps: { initialValues: { age: 30 } } });
-
-		await screen.rerender({ formProps: { initialValues: { age: 50 } } });
-
-		expect(form.getState().values.age).toBe(50);
-		expect(form.getState().initialValues?.age).toBe(50);
-		expect(readJson('input:age').value).toBe(50);
-	});
-
-	it('keeps a dirty value when a new initialValues object has the same values', async () => {
+	it('ignores an initialValues given after mount and keeps the dirty value', async () => {
 		const { form, screen } = await mount({ formProps: { initialValues: { age: 30 } } });
 		form.change('age', 40);
 
-		await screen.rerender({ formProps: { initialValues: { age: 30 } } });
+		await screen.rerender({ formProps: { initialValues: { age: 50 } } });
 
 		expect(form.getState().values.age).toBe(40);
 		expect(form.getState().initialValues?.age).toBe(30);
+		expect(readJson('input:age').value).toBe(40);
+	});
+
+	it('calls validate once on mount', async () => {
+		const validate = vi.fn(() => ({}));
+		await mount({ formProps: { initialValues: { age: 30 }, validate } });
+
+		expect(validate).toHaveBeenCalledTimes(1);
+	});
+
+	it('clears the errors when validate is removed after mount', async () => {
+		const formProps = { initialValues: { age: 17 }, validate: tooYoung };
+		const { form, screen } = await mount({ formProps });
+		expect(form.getState().valid).toBe(false);
+
+		await screen.rerender({ formProps: { initialValues: { age: 17 } } });
+
+		expect(form.getState().valid).toBe(true);
+		expect(form.getState().hasValidationErrors).toBe(false);
 	});
 
 	it('runs no subscriber of its own after it is unmounted', async () => {
@@ -278,18 +286,5 @@ describe('the form prop of the legacy Field and FormSpy', () => {
 
 		expect(document.querySelector('[data-testid="field-value"]')?.textContent).toBe('Outer');
 		expect(readJson('spy-values')).toEqual({ firstName: 'Outer' });
-	});
-});
-
-describe('the legacy FormSpy slot', () => {
-	it('provides formState as the same state as state', async () => {
-		await render(LegacyProfile, {
-			onSubmit: () => undefined,
-			initialValues: { firstName: 'Ana' },
-			spySubscription: { values: true }
-		});
-
-		expect(readJson('spy-form-state')).toEqual({ values: { firstName: 'Ana' } });
-		expect(readJson('spy-form-state')).toEqual(readJson('spy-state'));
 	});
 });

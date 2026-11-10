@@ -5,7 +5,7 @@
 <script>
 	import { Field, Form, FormSpy } from 'svelte-final-form-ts';
 	import Probe from './Probe.svelte';
-	import { config, fields, rendered, toAge } from './setup.js';
+	import { config, fields, rendered, toAge, validateStore } from './setup.js';
 
 	const {
 		onSubmit,
@@ -21,7 +21,7 @@
 <Form
 	{onSubmit}
 	{initialValues}
-	{validate}
+	validate={$validateStore ?? validate}
 	subscription={formSubscription}
 	let:form
 	let:state

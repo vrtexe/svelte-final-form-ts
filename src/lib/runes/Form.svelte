@@ -7,7 +7,13 @@
 	import type { Snippet } from 'svelte';
 	import type { FormState, FormSubscription } from 'final-form';
 	import type { AnyFormValues, FormRenderProps } from '../core/types.js';
-	import { createHandleSubmit, createTypedForm, subscribeForm } from '../core/form.js';
+	import {
+		createHandleSubmit,
+		createTypedForm,
+		normalizeOnSubmit,
+		setValidate,
+		subscribeForm
+	} from '../core/form.js';
 	import type { FormConfig } from '../core/form.js';
 	import { setFormContext } from '../core/context.js';
 
@@ -75,10 +81,12 @@
 
 	// Only a changed value reaches final-form: setConfig('validate') revalidates the whole form.
 	function keep<K extends keyof LiveConfig>(key: K, value: LiveConfig[K]): void {
-		if (applied[key] !== value) {
-			applied[key] = value;
-			form.setConfig(key, value);
-		}
+		if (applied[key] === value) return;
+		applied[key] = value;
+		if (key === 'validate') setValidate(form, value as FormConfig<V>['validate']);
+		else if (key === 'onSubmit')
+			form.setConfig('onSubmit', normalizeOnSubmit(value as FormConfig<V>['onSubmit']));
+		else form.setConfig(key, value);
 	}
 
 	$effect(() => {

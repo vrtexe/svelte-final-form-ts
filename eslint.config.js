@@ -11,7 +11,7 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	// compat/ holds consumer projects with intentional type errors and Svelte 4 syntax.
-	{ ignores: ['compat/'] },
+	{ ignores: ['compat/', 'docs/', '.claude/'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formSubscriptionItems } from 'final-form';
+import { FORM_ERROR, formSubscriptionItems } from 'final-form';
 import type { FormState } from 'final-form';
 import {
 	allFormSubscription,
 	createHandleSubmit,
 	createTypedForm,
+	setValidate,
 	subscribeForm
 } from '../lib/core/form.js';
 import type { FormConfig } from '../lib/core/form.js';
@@ -197,6 +198,31 @@ describe('createHandleSubmit', () => {
 	});
 });
 
+describe('setValidate', () => {
+	it('clears the errors left by a removed validator', () => {
+		const form = profileForm({ validate: () => ({ firstName: 'Required' }) });
+		expect(form.getState().valid).toBe(false);
+
+		setValidate(form, undefined);
+
+		expect(form.getState().valid).toBe(true);
+		expect(form.getState().hasValidationErrors).toBe(false);
+	});
+
+	it('keeps the errors of a field validator when the form validator is removed', () => {
+		const form = profileForm();
+		registerTypedField(form, 'age', () => undefined, undefined, {
+			getValidator: () => (value) => (value < 18 ? 'Too young' : undefined)
+		});
+		form.change('age', 17);
+		expect(form.getState().valid).toBe(false);
+
+		setValidate(form, undefined);
+
+		expect(form.getState().valid).toBe(false);
+	});
+});
+
 describe('form core boundaries', () => {
 	it('publishes the submission errors resolved by an asynchronous onSubmit', async () => {
 		const form = profileForm({ onSubmit: async () => ({ firstName: 'Taken' }) });
@@ -209,13 +235,39 @@ describe('form core boundaries', () => {
 		expect(field()?.meta.submitError).toBe('Taken');
 	});
 
-	it('clears submitting and rejects when an asynchronous onSubmit rejects', async () => {
+	it('turns a rejected asynchronous onSubmit into a submission error', async () => {
 		const form = profileForm({ onSubmit: () => Promise.reject(new Error('network down')) });
 		const state = watchForm(form);
 
-		await expect(form.submit()).rejects.toThrow('network down');
+		const result = await form.submit();
 
-		expect(state()?.submitting).toBe(false);
+		expect(result).toEqual({ [FORM_ERROR]: 'network down' });
+		expect(state()).toMatchObject({
+			submitting: false,
+			submitFailed: true,
+			submitSucceeded: false,
+			submitError: 'network down'
+		});
+	});
+
+	it('turns a synchronous throw into a submission error and stays submittable', async () => {
+		const onSubmit = vi.fn(() => {
+			throw new Error('boom');
+		});
+		const form = profileForm({ onSubmit });
+		const state = watchForm(form);
+
+		await form.submit();
+
+		expect(state()).toMatchObject({
+			submitting: false,
+			submitFailed: true,
+			submitSucceeded: false
+		});
+
+		await form.submit();
+
+		expect(onSubmit).toHaveBeenCalledTimes(2);
 	});
 
 	it('does not call onSubmit a second time while the first submission is pending', () => {

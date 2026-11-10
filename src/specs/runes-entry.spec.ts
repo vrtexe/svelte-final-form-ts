@@ -15,6 +15,11 @@ import RunesFormSpy from '../lib/runes/FormSpy.svelte';
 
 const projectRoot = resolve(import.meta.dirname, '../..');
 const runesDir = join(projectRoot, 'src/lib/runes');
+const manifest = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')) as {
+	name: string;
+	version: string;
+};
+const tarball = `${manifest.name}-${manifest.version}.tgz`;
 
 /** The module specifiers a file imports or re-exports values from; `import type` is left out. */
 const valueImportsOf = (source: string): string[] =>
@@ -85,6 +90,7 @@ beforeAll(() => {
 		return;
 	}
 	copyFileSync(join(projectRoot, 'package.json'), join(packDir, 'package.json'));
+	copyFileSync(join(projectRoot, 'LICENSE.md'), join(packDir, 'LICENSE.md'));
 	const run = spawnSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
 		cwd: packDir,
 		encoding: 'utf8'
@@ -106,10 +112,10 @@ const packedPaths = (): string[] => {
 };
 
 describe('the packed library', () => {
-	it('is named svelte-final-form-ts-0.0.1.tgz', () => {
+	it('is named after the package and version', () => {
 		packedPaths();
 
-		expect(pack?.filename).toBe('svelte-final-form-ts-0.0.1.tgz');
+		expect(pack?.filename).toBe(tarball);
 	});
 
 	it.each([
@@ -124,10 +130,10 @@ describe('the packed library', () => {
 		expect(packedPaths()).toContain(path);
 	});
 
-	it('contains only the manifest, the readme and dist, with no test, spec, route or fixture file', () => {
+	it('contains only the manifest, readme, license and dist, with no test, spec, route or fixture file', () => {
 		const stray = packedPaths().filter(
 			(path) =>
-				!(path.startsWith('dist/') || ['package.json', 'README.md'].includes(path)) ||
+				!(path.startsWith('dist/') || ['package.json', 'README.md', 'LICENSE.md'].includes(path)) ||
 				/\.(test|spec)\./.test(path) ||
 				/(^|\/)(routes|fixtures|specs)\//.test(path)
 		);

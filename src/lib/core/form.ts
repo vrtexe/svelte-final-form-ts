@@ -1,5 +1,11 @@
-import { createForm, formSubscriptionItems } from 'final-form';
-import type { Config, FormState, FormSubscription, Unsubscribe } from 'final-form';
+import { FORM_ERROR, createForm, formSubscriptionItems } from 'final-form';
+import type {
+	Config,
+	FormState,
+	FormSubscription,
+	SubmissionErrors,
+	Unsubscribe
+} from 'final-form';
 import type { AnyFormValues, FormRenderProps, TypedFormApi } from './types.js';
 
 /** The final-form options a `Form` accepts. Every key exists in final-form 4.20 and 5. */
@@ -27,7 +33,65 @@ export const allFormSubscription: FormSubscription = Object.fromEntries(
  */
 export function createTypedForm<V extends AnyFormValues>(config: FormConfig<V>): TypedFormApi<V> {
 	// TypedFormApi retypes final-form's `keyof V` names as dot paths, which final-form accepts at runtime.
-	return createForm<V, Partial<V>>(config) as TypedFormApi<V>;
+	return createForm<V, Partial<V>>({
+		...config,
+		onSubmit: normalizeOnSubmit(config.onSubmit)
+	}) as TypedFormApi<V>;
+}
+
+function errorMessage(error: unknown): string {
+	if (error instanceof Error) return error.message;
+	return typeof error === 'string' ? error : String(error);
+}
+
+// final-form reports a rejected onSubmit as success and wedges the form after a synchronous throw.
+// The wrapper keeps the callback protocol: a three-parameter onSubmit makes final-form wait for it.
+const normalizedOnSubmit = new WeakMap<object, unknown>();
+
+export function normalizeOnSubmit<V extends AnyFormValues>(
+	onSubmit: FormConfig<V>['onSubmit']
+): FormConfig<V>['onSubmit'] {
+	if (!onSubmit) return onSubmit;
+	const cached = normalizedOnSubmit.get(onSubmit);
+	if (cached) return cached as FormConfig<V>['onSubmit'];
+	const wrapped: NonNullable<FormConfig<V>['onSubmit']> = (values, form, callback) => {
+		const complete = callback ?? (() => undefined);
+		const fail = (error: unknown) =>
+			complete({ [FORM_ERROR]: errorMessage(error) } as SubmissionErrors);
+		try {
+			const result = onSubmit(values, form, complete);
+			if (result && typeof (result as Promise<SubmissionErrors>).then === 'function') {
+				void (result as Promise<SubmissionErrors>).then(
+					(errors) => complete(errors),
+					(error: unknown) => fail(error)
+				);
+				return;
+			}
+			if (onSubmit.length < 3) complete(result as SubmissionErrors);
+		} catch (error) {
+			fail(error);
+		}
+	};
+	normalizedOnSubmit.set(onSubmit, wrapped);
+	return wrapped;
+}
+
+/** Set the form-level validator, clearing the errors left behind when it is removed. */
+export function setValidate<V extends AnyFormValues>(
+	form: TypedFormApi<V>,
+	validate: FormConfig<V>['validate']
+): void {
+	if (validate) {
+		form.setConfig('validate', validate);
+		return;
+	}
+	const state = form.getState();
+	if (state.valid && !state.errors) {
+		form.setConfig('validate', undefined);
+		return;
+	}
+	form.setConfig('validate', () => undefined);
+	form.setConfig('validate', undefined);
 }
 
 /** Subscribe to the form state. final-form calls the listener once right away. */
@@ -49,25 +113,11 @@ export function createHandleSubmit<V extends AnyFormValues>(
 	};
 }
 
-/** Compares two objects one level deep: equal keys, `===` per value. Nested objects compare by reference. */
-export function shallowEqual(a: unknown, b: unknown): boolean {
-	if (a === b) return true;
-	if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
-	const left = a as Record<string, unknown>;
-	const right = b as Record<string, unknown>;
-	const keys = Object.keys(left);
-	return keys.length === Object.keys(right).length && keys.every((key) => left[key] === right[key]);
-}
-
-/** Returns a watcher that calls `callback` when the value it receives differs, by `isEqual`, from the one before. */
-export function whenValueChanges<T>(
-	init: T,
-	callback: () => void,
-	isEqual: (a: T, b: T) => boolean = (a, b) => a === b
-): (value: T) => void {
+/** Returns a watcher that calls `callback` when the value it receives differs from the one before. */
+export function whenValueChanges<T>(init: T, callback: () => void): (value: T) => void {
 	let previous = init;
 	return (value) => {
-		if (!isEqual(previous, value)) {
+		if (previous !== value) {
 			callback();
 			previous = value;
 		}

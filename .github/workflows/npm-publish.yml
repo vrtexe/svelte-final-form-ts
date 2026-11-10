@@ -1,5 +1,8 @@
-# Tests the package, bumps the version to the release tag and publishes it to npm.
-# Publishing uses npm trusted publishing (OIDC); no npm token is involved.
+# Tests the package, bumps the version to the release tag and stages it on npm.
+# Publishing uses npm trusted publishing (OIDC) and staged publishing: this workflow can only
+# submit a staged version, and a maintainer approves it with 2FA before it goes live.
+# npm package settings: Trusted Publisher = GitHub Actions, this repository, workflow filename
+# npm-publish.yml, allowed action "npm stage publish".
 
 name: publish
 
@@ -18,11 +21,10 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
+          package-manager-cache: false
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run check
-      - run: npm run test:unit -- --run
+      - run: npm run verify
 
   version:
     needs: verify
@@ -59,5 +61,7 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+      - run: npm install --global npm@^11.15.0
       - run: npm ci
-      - run: npm publish
+      - run: npm stage publish --access public --provenance

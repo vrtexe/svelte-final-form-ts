@@ -12,7 +12,6 @@
 		formSubscription,
 		fieldSubscription,
 		spySubscription,
-		spyOnChange,
 		ageValidator,
 		fields = ['firstName', 'age', 'address.city', 'address.zip'],
 		onForm,
@@ -115,7 +114,7 @@
 				</Field>
 			{/if}
 			{#if spySubscription}
-				<FormSpy subscription={spySubscription} onChange={spyOnChange}>
+				<FormSpy subscription={spySubscription}>
 					{#snippet children({ state: spyState, form: spyForm })}
 						{rendered('spy', spyState)}
 						<output data-testid="spy-state">{JSON.stringify(spyState)}</output>

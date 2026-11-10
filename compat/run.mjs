@@ -10,7 +10,8 @@ import path from 'node:path';
 const compat = import.meta.dirname;
 const root = path.dirname(compat);
 const work = path.join(compat, '.work');
-const tarball = 'svelte-final-form-ts-0.0.1.tgz';
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const tarball = `${manifest.name}-${manifest.version}.tgz`;
 const projectFiles = [
 	'package.json',
 	'package-lock.json',
@@ -59,13 +60,17 @@ function run(cmd, args, cwd, env = {}) {
 	return { code: r.status ?? 1, stdout: r.stdout ?? '', all: `${r.stdout ?? ''}${r.stderr ?? ''}` };
 }
 
-console.log('== 1. compat lockfiles resolve from the public registry');
-for (const project of new Set(rows.map((r) => r.project))) {
-	const lock = path.join(compat, project, 'package-lock.json');
-	if (!fs.existsSync(lock)) fail(`${project}/package-lock.json is missing`);
+console.log('== 1. lockfiles resolve from the public registry');
+const lockfiles = [
+	path.join(root, 'package-lock.json'),
+	...new Set(rows.map((r) => path.join(compat, r.project, 'package-lock.json')))
+];
+for (const lock of lockfiles) {
+	const name = path.relative(root, lock);
+	if (!fs.existsSync(lock)) fail(`${name} is missing`);
 	if (fs.readFileSync(lock, 'utf8').includes('repo.netcetera.com')) {
 		fail(
-			`${project}/package-lock.json contains repo.netcetera.com; ` +
+			`${name} contains repo.netcetera.com; ` +
 				'regenerate it with npm install --registry=https://registry.npmjs.org/'
 		);
 	}
@@ -102,8 +107,12 @@ if (packed.filename !== tarball) fail(`tarball is ${packed.filename}, expected $
 const packedFiles = packed.files.map((f) => f.path);
 const stray = packedFiles.filter(
 	(f) =>
-		!(f.startsWith('dist/') || f === 'package.json' || f === 'README.md') ||
-		/\.(spec|test)\./.test(f)
+		!(
+			f.startsWith('dist/') ||
+			f === 'package.json' ||
+			f === 'README.md' ||
+			f === 'LICENSE.md'
+		) || /\.(spec|test)\./.test(f)
 );
 if (stray.length) fail(`tarball holds files outside the library: ${stray.join(', ')}`);
 for (const f of [
@@ -176,7 +185,7 @@ function compileWithSvelte4(dir) {
 	);
 }
 
-function checkTypes(dir, name) {
+function checkTypes(dir, name, major) {
 	const r = run(
 		'node_modules/.bin/svelte-check',
 		['--tsconfig', './tsconfig.json', '--output', 'machine-verbose'],
@@ -195,8 +204,13 @@ function checkTypes(dir, name) {
 			message: d.message
 		}));
 	const missing = [];
+	const absent = [];
 	for (const [file, errors] of Object.entries(expectedErrors)) {
-		if (!fs.existsSync(path.join(dir, 'src', file))) continue;
+		// Svelte 4 rows skip the runes fixtures, so their expected errors are absent by design.
+		if (!fs.existsSync(path.join(dir, 'src', file))) {
+			if (!(major === 4 && file.includes('runes'))) absent.push(file);
+			continue;
+		}
 		for (const e of errors) {
 			const i = actual.findIndex(
 				(a) => a.file === file && a.line === e.line && a.message.includes(e.includes)
@@ -204,6 +218,14 @@ function checkTypes(dir, name) {
 			if (i === -1) missing.push(`${file}:${e.line} "${e.includes}"`);
 			else actual.splice(i, 1);
 		}
+	}
+	const positive = ['types/legacy-Exports.svelte'];
+	if (major >= 5) positive.push('types/runes/exports.ts');
+	for (const file of positive) {
+		if (!fs.existsSync(path.join(dir, 'src', file))) absent.push(file);
+	}
+	if (absent.length) {
+		fail(`${name}: type fixtures are missing: ${absent.join(', ')}`);
 	}
 	if (missing.length || actual.length) {
 		fail(
@@ -264,7 +286,7 @@ for (const row of rows) {
 	console.log('OK   installed without a peer conflict');
 
 	if (major === 4) compileWithSvelte4(dir);
-	checkTypes(dir, name);
+	checkTypes(dir, name, major);
 
 	// Svelte 5 consumers run the legacy and runes sets in both modes, runes mode last because it
 	// replaces the project's svelte.config.js (07-plan.md, contract decision 9). The legacy set reads
