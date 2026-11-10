@@ -1,5 +1,5 @@
 # Tests the package, bumps the version to the release tag and publishes it to npm.
-# Requires a repository secret named npm_token with an npm automation token.
+# Publishing uses npm trusted publishing (OIDC); no npm token is involved.
 
 name: publish
 
@@ -48,6 +48,9 @@ jobs:
   publish-npm:
     needs: version
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v6
         with:
@@ -55,9 +58,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
