@@ -282,7 +282,8 @@ npm run dev -- --open   # showcase app
 npm run check           # svelte-check
 npm run test:unit -- --run
 npm test                # check, unit tests and e2e
-npm run verify          # lint, check, unit, e2e, build and compat
+npm run verify          # lint, check, unit, e2e, build, compat and audit
+npm run verify:release  # the same without e2e; used by the publish workflow
 ```
 
 `npm run test:compat` packs the library and installs the tarball into the consumer projects under

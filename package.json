@@ -1,6 +1,6 @@
 {
 	"name": "svelte-final-form-ts",
-	"version": "0.0.9",
+	"version": "1.0.0",
 	"description": "Type-safe final-form bindings for Svelte 4 and Svelte 5: typed field paths, Form, Field and FormSpy, no wrapper markup.",
 	"repository": {
 		"type": "git",
@@ -23,7 +23,8 @@
 		"test": "npm run check && npm run test:unit -- --run && npm run test:e2e",
 		"test:e2e": "playwright install && playwright test",
 		"test:compat": "node compat/run.mjs",
-		"verify": "npm run lint && npm test && npm run build && npm run test:compat && npm audit --omit=dev"
+		"verify": "npm run lint && npm test && npm run build && npm run test:compat && npm audit --omit=dev",
+		"verify:release": "npm run lint && npm run check && npm run test:unit -- --run && npm run build && npm run test:compat && npm audit --omit=dev"
 	},
 	"files": [
 		"dist",
